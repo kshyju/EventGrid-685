@@ -1,59 +1,36 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mime;
 using System.Text.Json;
 using Azure.Messaging;
 using Microsoft.Azure.Functions.Worker;
-using static EventGrid_685.PublishChangeFeedEvents;
+using Microsoft.Azure.Functions.Worker.Http;
 
 namespace EventGrid_685
 {
-
-    public class StreamId
-    {
-        public string Value { set; get; }
-    }
-
     public static class PublishChangeFeedEvents
     {
         [Function(nameof(PublishChangeFeedEvents))]
         [EventGridOutput(TopicEndpointUri = "TopicEndpointUri", TopicKeySetting = "TopicKeySetting")]
-        public static string Run([CosmosDBTrigger(
-    databaseName: "my-db",
-    collectionName: "my-container",
-    ConnectionStringSetting = "ConnStrCosmosDb",
-    LeaseCollectionName = "leases",
-    CreateLeaseCollectionIfNotExists = true,
-    StartFromBeginning = true)] string json)
+        public static string Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestData req,
+            FunctionContext executionContext)
         {
+            var u = new Person {  Name="Smoke"};
 
-            var events = new string[] { "test", "item"}
-                .Select(x => new CloudEvent("https://localhost", x, new BinaryData(x), MediaTypeNames.Application.Json, CloudEventDataFormat.Json)
-            {
-                Subject = x
-            });
+            var events = new string[] { "one" }
+                .Select(x => new CloudEvent("https://localhost", x, new BinaryData(u), MediaTypeNames.Application.Json, CloudEventDataFormat.Json)
+                {
+                    Subject = "sub"
+                });
 
             var outputJson = JsonSerializer.Serialize(events);
 
             return outputJson;
-        }
-
-        public class Person
-        {
-            public string Name { get; set; }
-        }
-
+        }       
     }
 
-    public class MyDocument
+    public class Person
     {
-        public string Id { get; set; }
-
-        public string Text { get; set; }
-
-        public int Number { get; set; }
-
-        public bool Boolean { get; set; }
+        public string Name { get; set; }
     }
 }
